@@ -1,0 +1,84 @@
+<template>
+  <view class="container" wx:if="{{init}}">
+    <view class="column">
+      <view class="title-box row-between">
+        <text class="muted lg">我管理的店铺</text>
+        <!--<text class="muted lg" @tap="nopen">创建</text>-->
+      </view>
+
+      <!--店铺列表-->
+      <view class="list-box column">
+        <!--当需要循环渲染WePY组件时(类似于通过wx:for循环渲染原生的wxml标签)，必须使用WePY定义的辅助标签<repeat>-->
+        <repeat for="{{shops}}" key="index" index="index" item="item">
+          <view @tap="enter({{item.shopId}})">
+            <!--可以通过使用.sync修饰符来达到父组件数据绑定至子组件的效果，也可以通过设置子组件props的twoWay: true来达到子组件数据绑定至父组件的效果。那如果既使用.sync修饰符，同时子组件props中添加的twoWay: true时，就可以实现数据的双向绑定了。-->
+            <ShopItem :shop.sync="item"></ShopItem>
+          </view>
+        </repeat>
+      </view>
+    </view>
+
+    <!--占位符-->
+    <Placeholder :list="shops" message="您还没有创建店铺"/>
+
+    <!--操作栏-->
+    <ActionBar okText="切换账号" noCancel @tap.user="back" />
+  </view>
+
+</template>
+
+<script>
+  import wepy from 'wepy';
+  import shop from '../../api/shop';
+  import auth from '../../api/auth';
+  import base from '../../mixins/base';
+  import Tips from '../../utils/Tips';
+  import ShopItem from '../../components/shop/item';
+  import Placeholder from '../../components/common/placeholder';
+  import ActionBar from '../../components/common/action_bar';
+
+  export default class ShopList extends wepy.page {
+    def = {
+      shops: [],
+      init: false
+    };
+    data = {...this.def};
+    async onLoad () {
+      this.shops = await shop.list();
+      this.loaded();
+    };
+    methods = {
+      // 进入店铺
+      async enter(shopId) {
+        await auth.setConfig('shop_id', shopId)
+        this.$switch('home');
+      },
+      // 重新登录
+      async back() {
+        Tips.loading();
+        await auth.removeConfig('login_code');
+        this.$redirect('index');
+      }
+    };
+    mixins = [base];
+    config = {
+      navigationBarTitleText: '选择店铺'
+    };
+    components = {
+      ShopItem: ShopItem,
+      Placeholder: Placeholder,
+      ActionBar: ActionBar
+    };
+  }
+</script>
+
+<style lang="scss">
+  @import "../../styles/variable";
+  .title-box{
+    padding:15rpx 30rpx;
+  }
+  .list-box{
+    background: white;
+    border-bottom: $border;
+  }
+</style>
